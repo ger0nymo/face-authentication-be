@@ -5,7 +5,6 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { Request } from "express";
-import { PrismaService } from "src/prisma/prisma.service";
 import { FaceAuthService } from "../../face-auth/face-auth.service";
 
 @Injectable()
