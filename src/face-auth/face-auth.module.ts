@@ -6,7 +6,7 @@ import { FaceAuthService } from "./face-auth.service";
   imports: [
     JwtModule.register({
       secret: process.env.FACE_AUTH_SECRET,
-      signOptions: { expiresIn: "10s" },
+      signOptions: { expiresIn: "15s" },
     }),
   ],
   providers: [FaceAuthService],
