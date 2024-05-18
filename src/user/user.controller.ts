@@ -73,8 +73,18 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Post("/disable-face-verification")
-  async disableFaceVerification(@Req() req: Request): Promise<void> {
-    await this.userService.disableFaceVerification(req.user.sub);
+  async disableFaceVerification(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      await this.userService.disableFaceVerification(req.user.sub);
+
+      res.status(200).send();
+    } catch (err: unknown) {
+      res.status(500).send(err.toString());
+      throw new InternalServerErrorException(err);
+    }
   }
 
   // TODO: Create it's own module
