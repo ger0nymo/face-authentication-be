@@ -71,7 +71,7 @@ export class UserController {
     }
   }
 
-  // TODO: Create it's own controller
+  // TODO: Create it's own module
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor("file"))
   @Post("/image/image-embedding")
@@ -97,6 +97,7 @@ export class UserController {
     }
   }
 
+  // TODO: Create it's own module
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor("file"))
   @Post("image/compare-faces")

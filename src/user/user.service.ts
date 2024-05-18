@@ -79,6 +79,7 @@ export class UserService {
     return await bcrypt.compare(password, hashedPassword);
   }
 
+  // TODO: Create it's own module
   async imageEmbedding(file: Express.Multer.File, id: string): Promise<void> {
     // Get the image file from request body. Request body is type form-data. The image file is in the field 'image'.
     const image = file.buffer;
@@ -118,6 +119,7 @@ export class UserService {
     return;
   }
 
+  // TODO: Create it's own module
   async compareFaces(file: Express.Multer.File, id: string): Promise<number> {
     const image = file.buffer;
 
