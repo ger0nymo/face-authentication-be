@@ -8,6 +8,7 @@ import {
   UseGuards,
   Req,
   UseInterceptors,
+  UploadedFile,
 } from "@nestjs/common";
 
 import { UserService } from "./user.service";
@@ -16,6 +17,7 @@ import { Request, Response } from "express";
 import { User } from "@prisma/client";
 import { AuthGuard } from "src/guards/auth/auth.guard";
 import { RemovePasswordInterceptor } from "src/interceptors/remove-password/remove-password.interceptor";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller("user")
 export class UserController {
@@ -65,6 +67,32 @@ export class UserController {
     try {
       return { user: await this.userService.getById(req.user.sub) };
     } catch (err: unknown) {
+      throw new InternalServerErrorException(err);
+    }
+  }
+
+  // TODO: Create it's own controller and service for this
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor("file"))
+  @Post("/image/image-embedding")
+  async imageEmbedding(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      await this.userService.imageEmbedding(file, req.user.sub);
+
+      res.status(200).send();
+    } catch (err: unknown) {
+      if (err.toString().includes("Multiple")) {
+        res.status(450).send("Your image contains multiple faces.");
+        return;
+      } else if (err.toString().includes("No faces detected")) {
+        res.status(451).send("No face detected in your image.");
+        return;
+      }
+      res.status(500).send(err.toString());
       throw new InternalServerErrorException(err);
     }
   }

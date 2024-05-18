@@ -8,12 +8,15 @@ import { SignInDto } from "./dto/SignIn.dto";
 import { JwtService } from "@nestjs/jwt";
 import { v4 as uuidv4 } from "uuid";
 import * as bcrypt from "bcrypt";
+import { lastValueFrom } from "rxjs";
+import { HttpService } from "@nestjs/axios";
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly httpService: HttpService,
   ) {}
 
   async signUp(user: SignInDto) {
@@ -74,5 +77,44 @@ export class UserService {
     hashedPassword: string,
   ): Promise<boolean> {
     return await bcrypt.compare(password, hashedPassword);
+  }
+
+  async imageEmbedding(file: Express.Multer.File, id: string): Promise<void> {
+    // Get the image file from request body. Request body is type form-data. The image file is in the field 'image'.
+    const image = file.buffer;
+
+    try {
+      const formData = new FormData();
+      const imageBlob = new Blob([image], { type: file.mimetype });
+      formData.append("image", imageBlob, file.originalname);
+
+      // Send the image to the image embedding service at localhost:5000/image-embedding with an api key key: super-secret-api-key
+      const response = this.httpService.post(
+        "http://0.0.0.0:5000/image-embedding",
+        formData,
+        {
+          headers: {
+            key: "super-secret-api-key", // Obviously in a real application this would be stored in an environment variable
+          },
+        },
+      );
+
+      const { data } = await lastValueFrom(response);
+
+      console.log(data);
+
+      if (data.fv) {
+        await this.prisma.user.update({
+          where: { id },
+          data: { fv: data.fv },
+        });
+      } else {
+        throw Error(data.error);
+      }
+    } catch (err: unknown) {
+      throw new Error(err.toString());
+    }
+
+    return;
   }
 }
