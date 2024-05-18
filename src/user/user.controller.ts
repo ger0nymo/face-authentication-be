@@ -47,6 +47,7 @@ export class UserController {
       const response = await this.userService.signIn(credentials);
 
       if (response.user.fv.length === 0) {
+        delete response.user.password;
         res.status(200).send(response);
         return;
       } else {

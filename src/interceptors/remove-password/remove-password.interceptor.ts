@@ -12,6 +12,7 @@ export class RemovePasswordInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
       map((data) => {
+        console.log("Data:", data);
         delete data.user.password;
         return data;
       }),
