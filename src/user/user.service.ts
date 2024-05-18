@@ -117,4 +117,41 @@ export class UserService {
 
     return;
   }
+
+  async compareFaces(file: Express.Multer.File, id: string): Promise<number> {
+    const image = file.buffer;
+
+    try {
+      const formData = new FormData();
+      const imageBlob = new Blob([image], { type: file.mimetype });
+      formData.append("image", imageBlob, file.originalname);
+
+      const user = await this.prisma.user.findUnique({ where: { id } });
+
+      if (!user) throw new NotFoundException("User not found");
+
+      formData.append("fv", JSON.stringify(user.fv));
+
+      const response = this.httpService.post(
+        "http://0.0.0.0:5000/compare-faces",
+        formData,
+        {
+          headers: {
+            key: "super-secret-api-key",
+          },
+        },
+      );
+
+      const { data } = await lastValueFrom(response);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data.cosine_similarity;
+    } catch (err: unknown) {
+      console.log(err);
+      throw new Error(err.toString());
+    }
+  }
 }

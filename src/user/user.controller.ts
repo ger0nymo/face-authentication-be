@@ -71,7 +71,7 @@ export class UserController {
     }
   }
 
-  // TODO: Create it's own controller and service for this
+  // TODO: Create it's own controller
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor("file"))
   @Post("/image/image-embedding")
@@ -84,6 +84,40 @@ export class UserController {
       await this.userService.imageEmbedding(file, req.user.sub);
 
       res.status(200).send();
+    } catch (err: unknown) {
+      if (err.toString().includes("Multiple")) {
+        res.status(450).send("Your image contains multiple faces.");
+        return;
+      } else if (err.toString().includes("No faces detected")) {
+        res.status(451).send("No face detected in your image.");
+        return;
+      }
+      res.status(500).send(err.toString());
+      throw new InternalServerErrorException(err);
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor("file"))
+  @Post("image/compare-faces")
+  async compareFaces(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      const similarity: number = await this.userService.compareFaces(
+        file,
+        req.user.sub,
+      );
+
+      console.log("Cosine similarity: ", similarity);
+
+      if (similarity >= 0.6) {
+        res.status(200).send("The faces are similar.");
+      } else {
+        res.status(452).send("The faces are not similar.");
+      }
     } catch (err: unknown) {
       if (err.toString().includes("Multiple")) {
         res.status(450).send("Your image contains multiple faces.");
