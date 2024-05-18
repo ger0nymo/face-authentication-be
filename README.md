@@ -104,17 +104,6 @@ Expected successful result: Status code - 200
 
 It should set the `fv` field of the user to an empty array in the database.
 
-### Disable the face verification requirement for a user
-```http request
-POST /user/disable-face-verification
-```
-This request needs to have the authorization token acquired from the `/user/auth/sign-in` endpoint in its headers.
-
-
-Expected successful result: Status code - 200
-
-It should set the `fv` field of the user to an empty array in the database.
-
 ### Register a new face embedding vector for a user
 ```http request
 POST /user/image/image-embedding
