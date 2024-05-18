@@ -18,6 +18,7 @@ import { User } from "@prisma/client";
 import { AuthGuard } from "src/guards/auth/auth.guard";
 import { RemovePasswordInterceptor } from "src/interceptors/remove-password/remove-password.interceptor";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { FaceAuthGuard } from "../guards/auth/face-auth.guard";
 
 @Controller("user")
 export class UserController {
@@ -43,12 +44,15 @@ export class UserController {
   @Post("auth/sign-in")
   async signIn(@Body() credentials: SignInDto, @Res() res: Response) {
     try {
-      const { user, token }: { user: Partial<User>; token: string } =
-        await this.userService.signIn(credentials);
+      const response = await this.userService.signIn(credentials);
 
-      delete user.password;
-
-      res.status(200).send({ user: user, token: token });
+      if (response.user.fv.length === 0) {
+        res.status(200).send(response);
+        return;
+      } else {
+        res.status(210).send({ verification_token: response.faceToken });
+        return;
+      }
     } catch (err: unknown) {
       throw new InternalServerErrorException(err);
     }
@@ -79,7 +83,6 @@ export class UserController {
   ): Promise<void> {
     try {
       await this.userService.disableFaceVerification(req.user.sub);
-
       res.status(200).send();
     } catch (err: unknown) {
       res.status(500).send(err.toString());
@@ -97,24 +100,22 @@ export class UserController {
     @Res() res: Response,
   ): Promise<void> {
     try {
-      await this.userService.imageEmbedding(file, req.user.sub);
-
-      res.status(200).send();
+      const fv = await this.userService.imageEmbedding(file, req.user.sub);
+      res.status(200).send(fv);
     } catch (err: unknown) {
       if (err.toString().includes("Multiple")) {
         res.status(450).send("Your image contains multiple faces.");
         return;
-      } else if (err.toString().includes("No faces detected")) {
+      } else if (err.toString().includes("No face detected")) {
         res.status(451).send("No face detected in your image.");
         return;
       }
-      res.status(500).send(err.toString());
       throw new InternalServerErrorException(err);
     }
   }
 
   // TODO: Create it's own module
-  @UseGuards(AuthGuard)
+  @UseGuards(FaceAuthGuard)
   @UseInterceptors(FileInterceptor("file"))
   @Post("image/compare-faces")
   async compareFaces(
@@ -123,15 +124,20 @@ export class UserController {
     @Res() res: Response,
   ): Promise<void> {
     try {
+      console.log("User: ", req.user);
       const similarity: number = await this.userService.compareFaces(
         file,
-        req.user.sub,
+        req.user,
       );
 
       console.log("Cosine similarity: ", similarity);
 
       if (similarity >= 0.6) {
-        res.status(200).send("The faces are similar.");
+        // get user and send back the user and token
+        const user = await this.userService.signInAfterFaceVerification(
+          req.user.sub,
+        );
+        res.status(200).send({ result: user, cosine_similarity: similarity });
       } else {
         res.status(452).send("The faces are not similar.");
       }

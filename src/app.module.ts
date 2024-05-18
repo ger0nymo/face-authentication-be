@@ -3,6 +3,7 @@ import { UserModule } from "./user/user.module";
 import { PrismaService } from "./prisma/prisma.service";
 import { JwtModule } from "@nestjs/jwt";
 import { HttpModule } from "@nestjs/axios";
+import { FaceAuthModule } from "./face-auth/face-auth.module";
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { HttpModule } from "@nestjs/axios";
     }),
     UserModule,
     HttpModule,
+    FaceAuthModule,
   ],
   controllers: [],
   providers: [PrismaService],

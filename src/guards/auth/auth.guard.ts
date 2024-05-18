@@ -26,6 +26,8 @@ export class AuthGuard implements CanActivate {
         { secret: process.env.JWT_SECRET },
       );
 
+      console.log("AuthGuard So far so good", payload);
+
       if (
         await this.prisma.revokedToken.findUnique({
           where: { jti: payload.jti },

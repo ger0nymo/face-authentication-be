@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from "uuid";
 import * as bcrypt from "bcrypt";
 import { lastValueFrom } from "rxjs";
 import { HttpService } from "@nestjs/axios";
+import { FaceAuthService } from "../face-auth/face-auth.service";
+import { JwtPayload } from "../contracts/jwt-payload/jwt-payload.interface";
 
 @Injectable()
 export class UserService {
@@ -17,6 +19,7 @@ export class UserService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly faceAuthService: FaceAuthService,
   ) {}
 
   async signUp(user: SignInDto) {
@@ -36,6 +39,21 @@ export class UserService {
     );
 
     return { user: newUser, token };
+  }
+
+  async signInAfterFaceVerification(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) throw new NotFoundException("User not found");
+
+    const token = await this.jwtService.signAsync(
+      {},
+      { jwtid: uuidv4(), subject: user.id },
+    );
+
+    return { user, token };
   }
 
   async signIn(credentials: SignInDto) {
@@ -59,7 +77,15 @@ export class UserService {
       { jwtid: uuidv4(), subject: user.id },
     );
 
-    return { user, token };
+    if (user.fv.length === 0) return { user, token };
+
+    const faceToken = await this.faceAuthService.generateVerificationToken(
+      user.id,
+    );
+
+    console.log(faceToken);
+
+    return { user, faceToken };
   }
 
   async revokeToken(jti: string) {
@@ -87,7 +113,10 @@ export class UserService {
   }
 
   // TODO: Create it's own module
-  async imageEmbedding(file: Express.Multer.File, id: string): Promise<void> {
+  async imageEmbedding(
+    file: Express.Multer.File,
+    id: string,
+  ): Promise<number[]> {
     // Get the image file from request body. Request body is type form-data. The image file is in the field 'image'.
     const image = file.buffer;
 
@@ -116,18 +145,21 @@ export class UserService {
           where: { id },
           data: { fv: data.fv },
         });
+
+        return data.fv;
       } else {
         throw Error(data.error);
       }
     } catch (err: unknown) {
       throw new Error(err.toString());
     }
-
-    return;
   }
 
   // TODO: Create it's own module
-  async compareFaces(file: Express.Multer.File, id: string): Promise<number> {
+  async compareFaces(
+    file: Express.Multer.File,
+    payload: JwtPayload,
+  ): Promise<number> {
     const image = file.buffer;
 
     try {
@@ -135,7 +167,10 @@ export class UserService {
       const imageBlob = new Blob([image], { type: file.mimetype });
       formData.append("image", imageBlob, file.originalname);
 
-      const user = await this.prisma.user.findUnique({ where: { id } });
+      console.log("User from service: ", payload);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
 
       if (!user) throw new NotFoundException("User not found");
 
