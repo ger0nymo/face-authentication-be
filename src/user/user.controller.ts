@@ -71,6 +71,12 @@ export class UserController {
     }
   }
 
+  @UseGuards(AuthGuard)
+  @Post("/disable-face-verification")
+  async disableFaceVerification(@Req() req: Request): Promise<void> {
+    await this.userService.disableFaceVerification(req.user.sub);
+  }
+
   // TODO: Create it's own module
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor("file"))
