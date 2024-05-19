@@ -145,3 +145,7 @@ Expected successful result: Status code - 200
     "cosine_similarity": "0.812312"
 }
 ```
+
+### Improvements I could make
+- Ideally, authorization tokens should not be stored in local storage on the client, but with cookies
+- Ideally, the live face verification part should be handled by a websocket server not by a HTTP endpoint
